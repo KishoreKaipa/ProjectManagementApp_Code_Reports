@@ -1,0 +1,13 @@
+commit 358edc7dfc679dfdd6f311077858b022df3c4901
+tree e26d573cd90d4445031341b95ed45d5d71c6ec9e
+parent 0cd88343b6bc37c029444be3bba4188acd1b9638
+author Narasimha Kishore Kaipa <kishore.kaipa@gmail.com> 2019-09-29 23:44:53 -0500
+committer Narasimha Kishore Kaipa <kishore.kaipa@gmail.com> 2019-09-29 23:44:53 -0500
+
+    Hikari CP property config changes along with logging mechanism
+    enhancement
+
+
+
+:100644 100644 93217c3a334e560c9432b7b9efc0dca085a699fe fae51f0d773b99e6aa9c3bb876aecadf67a76fa8 M	pom.xml
+:100644 100644 f9fc4da61fbc18f2367c2e717a2a334d8972e7ad f6c5bcfe3f2fdee3e8838e99194039b1a206c1e6 M	src/main/resources/application.properties

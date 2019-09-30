@@ -1,0 +1,23 @@
+-cvf
+jar cvf web-archive-test.war .
+jar -cvf projectname.war *
+
+
+com.mysql.cj.jdbc.Driver
+
+
+Previous User Count: 131
+				2834 -> Total Users
+				1939 -> Success
+				 895 -> Failures
+				 
+Previous Project Count: 4
+				2746 -> Total Projects
+				1452 -> Success
+				1294 -> Failures
+				
+Previous Task Count: 3
+				2869 -> Total Tasks
+				2290 -> Success
+				 579 -> Failures
+                 

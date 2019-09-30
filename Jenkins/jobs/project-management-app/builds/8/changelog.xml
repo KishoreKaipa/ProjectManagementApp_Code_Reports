@@ -1,0 +1,11 @@
+commit 78fb5095f6a88c17346559dc902e693d1ea6a4ee
+tree a7b860e55c5be1d7dc5f21e23762245f58ab1372
+parent 9edc0cedf4a46cdaad93b83d8875cd1d1f4b34a5
+author Narasimha Kishore Kaipa <kishore.kaipa@gmail.com> 2019-09-29 18:02:08 -0500
+committer Narasimha Kishore Kaipa <kishore.kaipa@gmail.com> 2019-09-29 18:02:08 -0500
+
+    Removed Docker Spotify plugin due to local docker installation issue
+
+
+
+:100644 100644 d528caf6e4abce1517fc0f10fb795ccc8f91a154 93217c3a334e560c9432b7b9efc0dca085a699fe M	pom.xml

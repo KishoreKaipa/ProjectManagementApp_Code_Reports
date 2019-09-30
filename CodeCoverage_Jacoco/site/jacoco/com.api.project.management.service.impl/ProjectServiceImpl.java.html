@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>ProjectServiceImpl.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">project-management-app</a> &gt; <a href="index.source.html" class="el_package">com.api.project.management.service.impl</a> &gt; <span class="el_source">ProjectServiceImpl.java</span></div><h1>ProjectServiceImpl.java</h1><pre class="source lang-java linenums">/**
+ * 
+ */
+package com.api.project.management.service.impl;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import com.api.project.management.exception.ProjectCreationException;
+import com.api.project.management.exception.ProjectNotFoundException;
+import com.api.project.management.exception.UserCreationException;
+import com.api.project.management.exception.UserNotFoundException;
+import com.api.project.management.jpa.model.ParentTask;
+import com.api.project.management.jpa.model.Project;
+import com.api.project.management.jpa.model.Task;
+import com.api.project.management.jpa.model.User;
+import com.api.project.management.jpa.repository.ParentTaskRepository;
+import com.api.project.management.jpa.repository.ProjectRepository;
+import com.api.project.management.jpa.repository.TaskRepository;
+import com.api.project.management.jpa.repository.UserRepository;
+import com.api.project.management.model.ProjectDetails;
+import com.api.project.management.model.UserDetails;
+import com.api.project.management.request.converter.ProjectDetailsToProjectConverter;
+import com.api.project.management.response.converter.ProjectToProjectDetailsConverter;
+import com.api.project.management.response.converter.UserToUserDetailsConverter;
+import com.api.project.management.service.ProjectService;
+
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Project Service Implementation
+ * 
+ * @author Narasimha Kishore Kaipa
+ */
+@Component
+@Service
+<span class="fc" id="L44">@Slf4j</span>
+<span class="fc" id="L45">public class ProjectServiceImpl implements ProjectService {</span>
+
+	@Autowired
+	ProjectRepository projectRepository;
+
+	@Autowired
+	ProjectDetailsToProjectConverter projectRequestConverter;
+
+	@Autowired
+	ProjectToProjectDetailsConverter projectResponseConverter;
+
+	@Autowired
+	UserToUserDetailsConverter userToUserDetailsConverter;
+
+	@Autowired
+	TaskRepository taskRepository;
+
+	@Autowired
+	ParentTaskRepository parentTaskRepository;
+
+	@Autowired
+	UserRepository userRepository;
+
+	@Override
+	public ProjectDetails createProject(ProjectDetails projectDetailsRequest)
+			throws UserNotFoundException, ProjectCreationException {
+<span class="fc" id="L71">		validateNewProjectData(projectDetailsRequest);</span>
+		// Step 1: Create Project Data
+<span class="fc" id="L73">		Project projectDataResponse = projectRepository.save(projectRequestConverter.convert(projectDetailsRequest));</span>
+<span class="fc" id="L74">		ProjectDetails projectDetailsResponse = projectResponseConverter.convert(projectDataResponse);</span>
+		// Step 2: Update users table with projectId References
+<span class="fc" id="L76">		UserDetails userDetailsUpdated = updateProjectIdReferencesForUsers(projectDetailsRequest, projectDataResponse);</span>
+<span class="fc" id="L77">		projectDetailsResponse.setUserDetails(userDetailsUpdated);</span>
+<span class="fc" id="L78">		return projectDetailsResponse;</span>
+	}
+
+	/**
+	 * Updates ProjectId references in users table for assigned User
+	 * 
+	 * @param projectDetailsRequest
+	 * @param projectDataResponse
+	 * @return userDetailsUpdated
+	 * @throws UserNotFoundException
+	 */
+	public UserDetails updateProjectIdReferencesForUsers(ProjectDetails projectDetailsRequest,
+			Project projectDataResponse) throws UserNotFoundException {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">		if (null != projectDetailsRequest.getUserDetails()) {</span>
+<span class="fc" id="L92">			int userId = projectDetailsRequest.getUserDetails().getUserId();</span>
+<span class="fc" id="L93">			Optional&lt;User&gt; userDataOpt = userRepository.findById(userId);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">			if (!userDataOpt.isPresent()) {</span>
+<span class="fc" id="L95">				log.error(&quot;User with userId &quot; + userId + &quot; not found&quot;);</span>
+<span class="fc" id="L96">				throw new UserNotFoundException(userId);</span>
+			}
+<span class="fc" id="L98">			User userData = userDataOpt.get();</span>
+<span class="fc" id="L99">			userData.setProject(projectDataResponse);</span>
+<span class="fc" id="L100">			userRepository.save(userData);</span>
+<span class="fc" id="L101">			return userToUserDetailsConverter.convert(userData);</span>
+		}
+<span class="fc" id="L103">		return null;</span>
+	}
+
+	/**
+	 * validates new project data and throws error if there is validation error
+	 * 
+	 * @param projectRequest
+	 * @throws ProjectCreationException
+	 */
+	public void validateNewProjectData(ProjectDetails projectRequest) throws ProjectCreationException {
+<span class="fc bfc" id="L113" title="All 2 branches covered.">		if (StringUtils.isBlank(projectRequest.getProjectDescription())) {</span>
+<span class="fc" id="L114">			log.error(&quot;Project Creation validation failed  projectDescription is blank&quot;);</span>
+<span class="fc" id="L115">			throw new ProjectCreationException(&quot;projectDescription&quot;);</span>
+		}
+
+<span class="fc bfc" id="L118" title="All 2 branches covered.">		if (null != projectRequest.getStartDate()) {</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">			if (null == projectRequest.getEndDate()) {</span>
+<span class="fc" id="L120">				log.error(&quot;Project Creation validation failed  endDate is null&quot;);</span>
+<span class="fc" id="L121">				throw new ProjectCreationException(&quot;endDate&quot;);</span>
+			}
+			// Make sure endDate is always greater than startDate by 1 day
+<span class="fc bfc" id="L124" title="All 2 branches covered.">			else if (!validateProjectDates(projectRequest.getStartDate(), projectRequest.getEndDate())) {</span>
+<span class="fc" id="L125">				log.error(&quot;Project Creation validation failed  endDate is not after startDate&quot;);</span>
+<span class="fc" id="L126">				throw new ProjectCreationException(&quot;endDate&quot;);</span>
+			}
+		}
+		// if startDate and endDate are null, default startDate will be today and
+		// endDate is tomorrow
+<span class="fc bfc" id="L131" title="All 2 branches covered.">		else if (null == projectRequest.getEndDate()) {</span>
+<span class="fc" id="L132">			projectRequest.setStartDate(LocalDate.now());</span>
+<span class="fc" id="L133">			projectRequest.setEndDate(LocalDate.now().plusDays(1));</span>
+		}
+		// in the event if endDate is selected without startDate, default startDate to
+		// today
+		else {
+<span class="fc" id="L138">			projectRequest.setStartDate(LocalDate.now());</span>
+		}
+<span class="fc" id="L140">	}</span>
+
+	/**
+	 * Validates endDate and startDate , returns true only if endDate is after
+	 * startDate
+	 * 
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
+	private boolean validateProjectDates(LocalDate startDate, LocalDate endDate) {
+<span class="fc" id="L151">		return endDate.isAfter(startDate);</span>
+	}
+
+	@Override
+	public ProjectDetails findProjectByProjectId(int projectId) throws ProjectNotFoundException {
+<span class="fc" id="L156">		Optional&lt;Project&gt; projectData = projectRepository.findById(projectId);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">		if (!projectData.isPresent()) {</span>
+<span class="fc" id="L158">			log.error(&quot;Project with projectId &quot; + projectId + &quot; not found&quot;);</span>
+<span class="fc" id="L159">			throw new ProjectNotFoundException(projectId);</span>
+		}
+<span class="fc" id="L161">		return projectResponseConverter.convert(projectData.get());</span>
+	}
+
+	@Override
+	public List&lt;ProjectDetails&gt; findAllProjects() {
+<span class="fc" id="L166">		List&lt;ProjectDetails&gt; projectDetailsList = new ArrayList&lt;ProjectDetails&gt;();</span>
+<span class="fc" id="L167">		Iterable&lt;Project&gt; projectDataList = projectRepository.findAll();</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">		for (Project projectData : projectDataList) {</span>
+<span class="fc" id="L169">			projectDetailsList.add(projectResponseConverter.convert(projectData));</span>
+<span class="fc" id="L170">		}</span>
+<span class="fc" id="L171">		return projectDetailsList;</span>
+	}
+
+	@Override
+	public ProjectDetails updateProjectDetails(ProjectDetails projectDetailsRequest)
+			throws ProjectNotFoundException, UserNotFoundException {
+<span class="fc" id="L177">		findProjectByProjectId(projectDetailsRequest.getProjectId());</span>
+		// Step 1: Create Project Data
+<span class="fc" id="L179">		Project projectDataResponse = projectRepository.save(projectRequestConverter.convert(projectDetailsRequest));</span>
+<span class="fc" id="L180">		ProjectDetails projectDetailsResponse = projectResponseConverter.convert(projectDataResponse);</span>
+		// Step 2: Update users table with projectId References
+<span class="fc" id="L182">		UserDetails userDetailsResponse = updateProjectIdReferencesForUsers(projectDetailsRequest, projectDataResponse);</span>
+<span class="fc" id="L183">		projectDetailsResponse.setUserDetails(userDetailsResponse);</span>
+<span class="fc" id="L184">		return projectDetailsResponse;</span>
+	}
+
+	@Override
+	public void deleteProject(ProjectDetails projectRequest) throws ProjectNotFoundException {
+		// Step 1: find Project via projectId
+<span class="fc" id="L190">		findProjectByProjectId(projectRequest.getProjectId());</span>
+
+		// Step 2: nullify projectId references for projectId in users table
+<span class="fc" id="L193">		deleteProjectIdReferenceFromUser(projectRequest.getProjectId());</span>
+
+		// Step 3: delete all tasks from Task table with matching projectId
+<span class="fc" id="L196">		deleteTaskProjectIdReferences(projectRequest.getProjectId());</span>
+
+		// Step 4: delete all parentTasks from ParentTask table with matching projectId
+<span class="fc" id="L199">		deleteParentTasksForProjectId(projectRequest.getProjectId());</span>
+
+		// Step 5: deletes Project if matching projectId found in DB
+<span class="fc" id="L202">		projectRepository.delete(projectRequestConverter.convert(projectRequest));</span>
+<span class="fc" id="L203">	}</span>
+
+	@Override
+	public void deleteProjectById(int projectId) throws ProjectNotFoundException {
+		// Step 1: find Project via projectId
+<span class="fc" id="L208">		findProjectByProjectId(projectId);</span>
+
+		// Step 2: nullify projectId references for projectId in users table
+<span class="fc" id="L211">		deleteProjectIdReferenceFromUser(projectId);</span>
+
+		// Step 3: delete all tasks from Task table with matching projectId
+<span class="fc" id="L214">		deleteTaskProjectIdReferences(projectId);</span>
+
+		// Step 4: delete all parentTasks from ParentTask table with matching projectId
+<span class="fc" id="L217">		deleteParentTasksForProjectId(projectId);</span>
+
+		// Step 5: deletes Project if matching projectId found in DB
+<span class="fc" id="L220">		projectRepository.deleteById(projectId);</span>
+<span class="fc" id="L221">	}</span>
+
+	/**
+	 * Deletes projectId reference from user table
+	 * 
+	 * @param projectId
+	 * @throws UserNotFoundException
+	 * @throws UserCreationException
+	 */
+	private void deleteProjectIdReferenceFromUser(int projectId) {
+<span class="fc bfc" id="L231" title="All 2 branches covered.">		for (User userData : userRepository.findAll()) {</span>
+<span class="fc bfc" id="L232" title="All 4 branches covered.">			if ((null != userData.getProject()) &amp;&amp; (userData.getProject().getProjectId() == projectId)) {</span>
+<span class="fc" id="L233">				userData.setProject(null);</span>
+<span class="fc" id="L234">				userRepository.save(userData);</span>
+			}
+<span class="fc" id="L236">		}</span>
+<span class="fc" id="L237">	}</span>
+
+	/**
+	 * Deletes all tasks associated to projectId
+	 * 
+	 * @param projectId
+	 */
+	private void deleteTaskProjectIdReferences(int projectId) {
+<span class="fc bfc" id="L245" title="All 2 branches covered.">		for (Task taskData : taskRepository.findAll()) {</span>
+<span class="fc bfc" id="L246" title="All 4 branches covered.">			if ((null != taskData.getProject()) &amp;&amp; (taskData.getProject().getProjectId() == projectId)) {</span>
+<span class="fc" id="L247">				taskRepository.delete(taskData);</span>
+			}
+<span class="fc" id="L249">		}</span>
+<span class="fc" id="L250">	}</span>
+
+	/**
+	 * Deletes all parentTasks for a given projectId
+	 * 
+	 * @param projectId
+	 */
+	private void deleteParentTasksForProjectId(int projectId) {
+<span class="fc bfc" id="L258" title="All 2 branches covered.">		for (ParentTask parentTaskData : parentTaskRepository.findAll()) {</span>
+<span class="fc bfc" id="L259" title="All 4 branches covered.">			if ((null != parentTaskData.getProject()) &amp;&amp; (parentTaskData.getProject().getProjectId() == projectId)) {</span>
+<span class="fc" id="L260">				parentTaskRepository.delete(parentTaskData);</span>
+			}
+<span class="fc" id="L262">		}</span>
+<span class="fc" id="L263">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.5.201505241946</span></div></body></html>
